@@ -40,6 +40,7 @@ enum ActiveNoes
 //+------------------------------------------------------------------+
 class TimeFrames
   {
+
 public:
    virtual void      GetGroupTF(ENUM_TIMEFRAMES &arr[]) = 0;
    virtual datetime  GetStart() = 0;
@@ -50,10 +51,12 @@ public:
 class GroupsTimeFrames:public TimeFrames
   {
 private:
+
    ENUM_TIMEFRAMES   group[];
    datetime          start;
    datetime          end;
    string            name;
+
 public:
                      GroupsTimeFrames(string &gname, ENUM_TIMEFRAMES &arr[], datetime &dStart, datetime &dEnd)
      {
@@ -76,15 +79,19 @@ public:
    datetime          GetEnd() override {return end;}
    string            GetGroupName() override {return name;}
   };
+
 //+------------------------------------------------------------------+
 //|                     TF_MANAGER                                   |
 //+------------------------------------------------------------------+
 class TF_Manager
   {
 private:
+
    TimeFrames*       TF_Groups[];
    int               SizeTfGroups;
+
 public:
+
                      TF_Manager() {ArrayFree(TF_Groups); SizeTfGroups = 0;}
 
    void              AddTFGroup(string &name, ENUM_TIMEFRAMES &arr[], datetime &start, datetime &end)
@@ -103,14 +110,18 @@ public:
         }
      }
   };
+
 //+------------------------------------------------------------------+
 //|              DATA                                                |
 //+------------------------------------------------------------------+
 class DATA
   {
 private:
+
    DataBars          data[];
+
 public:
+
    void              AddDATA(TimeFrames* &arr[]) //Функция загрузки баров в DATA
      {
       ENUM_TIMEFRAMES temp_pGroup[];
@@ -153,6 +164,7 @@ public:
         }
      }
   };
+
 //+------------------------------------------------------------------+
 //|           CLP                                                    |
 //+------------------------------------------------------------------+
@@ -163,7 +175,7 @@ public:
    virtual bool      pattern() = 0;
    virtual Direction GetDirection() = 0;
    virtual ActiveNoes GetActiveNoes() = 0;
-   virtual void      SetActiveNoes(ActiveNoes value) = 0;
+   virtual void      SetActiveNoes(ActiveNoes &value) = 0;
    virtual void      GetBarsData(MqlRates &arr) = 0;
    virtual void      SetTFGroupName(string &name) = 0;
    virtual void      SetTFGroupStart(datetime &start) = 0;
@@ -204,7 +216,7 @@ public:
    bool              pattern()
      {
       dir = NONE;
-      if(/* logic intentionally hidden */) 
+      if(/* logic intentionally hidden */)
         {
          dir = BEAR;
          BarsData[0] = Data[0];
@@ -232,7 +244,7 @@ public:
    datetime          GetTFGroupStart() override {return TFGroupStart;}
    datetime          GetTFGroupEnd() override {return TFGroupEnd;}
 
-   void              SetActiveNoes(ActiveNoes value) override {isActive = value;}
+   void              SetActiveNoes(ActiveNoes &value) override {isActive = value;}
    void              SetTFGroupName(string &name) override {TFGroupName = name;}
    void              SetTFGroupStart(datetime &start) override {TFGroupStart = start;}
    void              SetTFGroupEnd(datetime &end) override {TFGroupEnd = end;}
@@ -244,6 +256,7 @@ public:
         {timeframe = 0;}
      }
   };
+
 //+------------------------------------------------------------------+
 //|                          CLP_MANAGER                             |
 //+------------------------------------------------------------------+
@@ -309,30 +322,30 @@ private:
         }
      }
 
-   void              RemoveEmptyPatterns()
+   void              RemoveEmptyPatterns(CREATE_LEVELS_PATTERNS* &arr[])
      {
-      for(int i=0;i<ArraySize(noes);i++)
+      for(int i=0;i<ArraySize(arr);i++)
         {
-         if(noes[i].GetDirection() == NONE)
+         if(arr[i].GetDirection() == NONE)
            {
-            delete noes[i];
-            noes[i] = NULL;
+            delete arr[i];
+            arr[i] = NULL;
            }
         }
      }
 
-   void              CompactPatternsArray()
+   void              CompactPatternsArray(CREATE_LEVELS_PATTERNS* &arr[])
      {
       int j = 0;
-      for(int i=0; i< ArraySize(noes); i++)
+      for(int i=0; i< ArraySize(arr); i++)
         {
-         if(noes[i] != NULL)
+         if(arr[i] != NULL)
            {
-            noes[j] = noes[i];
+            arr[j] = arr[i];
             j++;
            }
         }
-      ArrayResize(noes, j);
+      ArrayResize(arr, j);
      }
 
 public:
@@ -367,8 +380,8 @@ public:
       if(Noes)
         {
          SearchNoes();
-         RemoveEmptyPatterns();
-         CompactPatternsArray();
+         RemoveEmptyPatterns(noes);
+         CompactPatternsArray(noes);
          int current_size = ArraySize(patterns);
          ArrayResize(patterns, current_size + ArraySize(noes));
          for(int i= 0; i < ArraySize(noes); i++)
@@ -380,6 +393,58 @@ public:
         }
       SortByDate();
      }
+
+   void              drawlvls()
+     {
+      MqlRates          temp;
+      for(int i=0;i<ArraySize(patterns);i++)
+        {
+         patterns[i]
+         .GetBarsData(temp);
+         if(patterns[i].GetDirection() == BEAR)
+           {
+            ObjectCreate(0,"noes" + IntegerToString(i), OBJ_TREND, 0, temp.time, temp.low, temp.time + 600, temp.low);
+            ObjectSetInteger(0, "noes" + IntegerToString(i), OBJPROP_COLOR, clrRed);
+            ObjectSetInteger(0, "noes" + IntegerToString(i), OBJPROP_WIDTH, 3);
+            ObjectCreate(/* logic intentionally hidden */);
+            ObjectSetInteger(0, "target" + IntegerToString(i), OBJPROP_COLOR, clrAliceBlue);
+            ObjectSetInteger(0, "target" + IntegerToString(i), OBJPROP_WIDTH, 3);
+           }
+         else
+            if(patterns[i].GetDirection() == BULL)
+              {
+               ObjectCreate(0,"noes" + IntegerToString(i), OBJ_TREND, 0, temp.time, temp.high, temp.time + 600, temp.high);
+               ObjectSetInteger(0, "noes" + IntegerToString(i), OBJPROP_COLOR, clrGreen);
+               ObjectSetInteger(0, "noes" + IntegerToString(i), OBJPROP_WIDTH, 3);
+               ObjectCreate(/* logic intentionally hidden */);
+               ObjectSetInteger(0, "target" + IntegerToString(i), OBJPROP_COLOR, clrAliceBlue);
+               ObjectSetInteger(0, "target" + IntegerToString(i), OBJPROP_WIDTH, 3);
+              }
+        }
+     }
+
+   void              DelDisActive()
+     {
+      for(int i=0;i<ArraySize(patterns);i++)
+        {
+         if(patterns[i].GetActiveNoes() == DISACTIVE)
+           {
+            delete patterns[i];
+            patterns[i] = NULL;
+           }
+        }
+      CompactPatternsArray(patterns);
+     }
+
+                    ~CLP_Manager()
+     {
+      for(int i=0;i<ArraySize(patterns);i++)
+        {
+         delete patterns[i];
+         patterns[i] = NULL;
+        }
+      ArrayFree(patterns);
+     }
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -389,6 +454,7 @@ class BREAKDOWNS_PATTERNS
 private:
 public:
   };
+
 //---
 class FIXING : public BREAKDOWNS_PATTERNS
   {
@@ -402,14 +468,27 @@ class CLP_Filters
   {
 private:
 public:
+
+   virtual void      CheckActive() = 0;
+
   };
 //---
 class Filters_Noes : public CLP_Filters
   {
 private:
+
+   CLP_Manager*      patterns;
+   CREATE_LEVELS_PATTERNS* arr[];
+
 public:
 
-   static void       CheckActive(CREATE_LEVELS_PATTERNS* &arr[])
+                     Filters_Noes(CLP_Manager &obj)
+     {
+      patterns = &obj;
+      patterns.GetPatterns(arr);
+     }
+
+   void              CheckActive() override
      {
       int shift_start_patterns = 0;
       int shift_start = 0;
@@ -417,63 +496,65 @@ public:
       int bars = 0;
       MqlRates pattern;
       MqlRates temp[];
+      ActiveNoes isActive;
       for(int i=0;i<ArraySize(arr);i++)
         {
          arr[i].GetBarsData(pattern);
          shift_start_patterns = iBarShift(_Symbol, arr[i].GetTimeframe(), arr[i].GetTime(), false);
          shift_start = iBarShift(_Symbol, arr[i].GetTimeframe(), arr[i].GetTFGroupStart(), false);
          shift_end = iBarShift(_Symbol, arr[i].GetTimeframe(), arr[i].GetTFGroupEnd(), 0);
-         CopyRates(_Symbol, arr[i].GetTimeframe(), shift_end +1, shift_end - shift_start_patterns, temp);
-         if(arr[i].GetDirection() == BEAR)
+         CopyRates(_Symbol, arr[i].GetTimeframe(), shift_end +1, shift_start_patterns - shift_end, temp);
+         for(int j=1;j<ArraySize(temp);j++)
            {
-            for(int j=0; j < ArraySize(temp); j++)
+            if(arr[i].GetDirection() == BEAR)
               {
                if(/* logic intentionally hidden */)
                  {
-                  arr[i].SetActiveNoes(ACTIVE);
+                  isActive = ACTIVE;
+                  arr[i].SetActiveNoes(isActive);
                   break;
                  }
                else
                   if(/* logic intentionally hidden */)
                     {
-                     arr[i].SetActiveNoes(NEUTRAL);
-                     break;
+                     isActive = NEUTRAL;
+                     arr[i].SetActiveNoes(isActive);
                     }
                   else
                      if(/* logic intentionally hidden */)
                        {
-                        arr[i].SetActiveNoes(DISACTIVE);
+                        isActive = DISACTIVE;
+                        arr[i].SetActiveNoes(isActive);
                         break;
                        }
               }
-           }
-         else
-            if(arr[i].GetDirection() == BULL)
-              {
-               for(int k=0; k < ArraySize(temp); k++)
+            else
+               if(arr[i].GetDirection() == BULL)
                  {
                   if(/* logic intentionally hidden */)
                     {
-                     arr[i].SetActiveNoes(ACTIVE);
+                     isActive = ACTIVE;
+                     arr[i].SetActiveNoes(isActive);
                      break;
                     }
                   else
                      if(/* logic intentionally hidden */)
                        {
-                        arr[i].SetActiveNoes(NEUTRAL);
-                        break;
+                        isActive = NEUTRAL;
+                        arr[i].SetActiveNoes(isActive);
                        }
                      else
                         if(/* logic intentionally hidden */)
                           {
-                           arr[i].SetActiveNoes(DISACTIVE);
+                           isActive = DISACTIVE;
+                           arr[i].SetActiveNoes(isActive);
                            break;
                           }
                  }
-              }
+           }
         }
+      patterns.DelDisActive();
      }
-
   };
 
 //+------------------------------------------------------------------+
@@ -499,20 +580,20 @@ void              OnStart()
    string name1 = "a";
    ENUM_TIMEFRAMES arr1[] =
      {PERIOD_M1, PERIOD_M2, PERIOD_M3, PERIOD_M4, PERIOD_M5, PERIOD_M6};
-   datetime start1 = D'2025.07.20 00.00';
+   datetime start1 = D'2025.07.20 14:00';
    datetime end1 = TimeCurrent();
 
    string name2 = "b";
    ENUM_TIMEFRAMES arr2[] =
      {PERIOD_M10, PERIOD_M12, PERIOD_M15, PERIOD_M20, PERIOD_M30};
-   datetime start2 = D'2025.05.20 00.00';
-   datetime end2 = D'2025.07.15 00.00';
+   datetime start2 = D'2025.07.22 00.00';
+   datetime end2 = TimeCurrent();
 
    string name3 = "c";
    ENUM_TIMEFRAMES arr3[] =
      {PERIOD_H1, PERIOD_H2, PERIOD_H3, PERIOD_H4, PERIOD_H6};
-   datetime start3 = D'2025.02.26 00.00';
-   datetime end3 = D'2025.07.18 00.00';
+   datetime start3 = D'2025.07.1 00.00';
+   datetime end3 = TimeCurrent();
 
    TF_Manager TF;
    TF.AddTFGroup(name1, arr1, start1, end1);
@@ -530,16 +611,15 @@ void              OnStart()
    pattern.SetActivePatterns(true);
    pattern.BuildActivePatterns();
 
-   CREATE_LEVELS_PATTERNS* acc[];
-   pattern.GetPatterns(acc);
+   Filters_Noes acc(pattern);
+   acc.CheckActive();
 
-   for(int i=0;i<ArraySize(acc);i++)
+   for(int i=0;i<ArraySize(groups);i++)
      {
-      if(acc[i].GetTFGroupName() == name3 && acc[i].GetTimeframe() == PERIOD_H1)
-        {
-         Print(acc[i].GetTime());
-        }
+      delete groups[i];
+      groups[i] = NULL;
      }
+   ArrayFree(groups);
 
    ulong endi = GetTickCount64(); // конец замера
    long mem_end = TerminalInfoInteger(TERMINAL_MEMORY_USED); // финальная память
